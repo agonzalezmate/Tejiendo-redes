@@ -11,38 +11,43 @@
     </style>
 </head>
 <body>
-// Más puntos en el mapa
-var puntos = [
-    { coords: [41.3884, 2.1905], titulo: "Barcelona", link: "https://ejemplo.com/barcelona" },
-    { coords: [41.9028, 1.1380], titulo: "Tarragona", link: "https://ejemplo.com/tarragona" },
-    { coords: [40.7128, -74.0060], titulo: "Nueva York", link: "https://ejemplo.com/nuevayork" }
-];
 
-// Crear el mapa centrado en Cataluña
-var map = L.map('map').setView([41.5912, 1.5208], 8);
-
-// Agregar capa de OpenStreetMap
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
-
-// Agregar los puntos y la línea entre ellos
-var markers = puntos.map(punto => {
-    return L.marker(punto.coords)
-        .addTo(map)
-        .bindPopup(`<b>${punto.titulo}</b><br><a href="${punto.link}" target="_blank">Ver más</a>`);
-});
-
-// Trazar la línea entre los puntos
-var latlngs = puntos.map(punto => punto.coords); // Extraemos las coordenadas
-var polyline = L.polyline(latlngs, {
-    color: 'red',       // Color de la línea
-    weight: 4,          // Grosor de la línea
-    opacity: 0.7,       // Opacidad de la línea
-    dashArray: '5, 5'   // Línea discontinua (si lo deseas)
-}).addTo(map);
+    <h1>Mapa Interactivo de Cataluña</h1>
+    <p>Haz clic en los marcadores para ver la información.</p>
     
+    <div id="map"></div>
 
+    <script>
+        // Más puntos en el mapa
+        var puntos = [
+            { coords: [41.3884, 2.1905], titulo: "Barcelona", link: "https://ejemplo.com/barcelona" },
+            { coords: [41.9028, 1.1380], titulo: "Tarragona", link: "https://ejemplo.com/tarragona" },
+            { coords: [40.7128, -74.0060], titulo: "Nueva York", link: "https://ejemplo.com/nuevayork" }
+        ];
+
+        // Crear el mapa centrado en Cataluña
+        var map = L.map('map').setView([41.5912, 1.5208], 8);
+
+        // Agregar capa de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Agregar los puntos al mapa
+        var markers = puntos.map(punto => {
+            return L.marker(punto.coords)
+                .addTo(map)
+                .bindPopup(`<b>${punto.titulo}</b><br><a href="${punto.link}" target="_blank">Ver más</a>`);
+        });
+
+        // Trazar la línea entre los puntos
+        var latlngs = puntos.map(punto => punto.coords); // Extraemos las coordenadas
+        var polyline = L.polyline(latlngs, {
+            color: 'red',       // Color de la línea
+            weight: 4,          // Grosor de la línea
+            opacity: 0.7,       // Opacidad de la línea
+            dashArray: '5, 5'   // Línea discontinua (si lo deseas)
+        }).addTo(map);
     </script>
 
 </body>
