@@ -42,20 +42,20 @@
         // Trazar las líneas entre los puntos A, B y C con colores diferentes
         var lineAB = L.polyline([puntos[0].coords, puntos[1].coords], {
             color: 'green',
-            weight: 4,
-            opacity: 0.7
+            weight: 2,
+            opacity: 0.2
         }).addTo(map);
 
         var lineBC = L.polyline([puntos[1].coords, puntos[2].coords], {
             color: 'red',
-            weight: 4,
-            opacity: 0.7
+            weight: 2,
+            opacity: 0.2
         }).addTo(map);
 
         var lineCA = L.polyline([puntos[2].coords, puntos[0].coords], {
             color: 'blue',
-            weight: 4,
-            opacity: 0.7
+            weight: 2,
+            opacity: 0.2
         }).addTo(map);
     </script>
 
