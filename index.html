@@ -12,25 +12,25 @@
 </head>
 <body>
 
-    <h1>Mapa Interactivo de Cataluña</h1>
+    <h1>Mapa Interactivo</h1>
     <p>Haz clic en los marcadores para ver la información.</p>
     
     <div id="map"></div>
 
     <script>
-        // Más puntos en el mapa
+        // Puntos A, B y C con sus coordenadas
         var puntos = [
-            { coords: [41.3884, 2.1905], titulo: "Barcelona", link: "https://ejemplo.com/barcelona" },
-            { coords: [41.9028, 1.1380], titulo: "Tarragona", link: "https://ejemplo.com/tarragona" },
-            { coords: [40.7128, -74.0060], titulo: "Nueva York", link: "https://ejemplo.com/nuevayork" }
+            { coords: [41.3884, 2.1905], titulo: "A (Barcelona)", link: "https://ejemplo.com/a" },
+            { coords: [41.9028, 1.1380], titulo: "B (Tarragona)", link: "https://ejemplo.com/b" },
+            { coords: [40.7128, -74.0060], titulo: "C (Nueva York)", link: "https://ejemplo.com/c" }
         ];
 
         // Crear el mapa centrado en Cataluña
         var map = L.map('map').setView([41.5912, 1.5208], 8);
 
-        // Agregar capa de OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+        // Agregar capa Stamen Toner (blanco y negro)
+        L.tileLayer('https://{s}.tile.stamen.com/toner/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://stamen.com">Stamen Design</a>, &copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
         // Agregar los puntos al mapa
@@ -40,13 +40,23 @@
                 .bindPopup(`<b>${punto.titulo}</b><br><a href="${punto.link}" target="_blank">Ver más</a>`);
         });
 
-        // Trazar la línea entre los puntos
-        var latlngs = puntos.map(punto => punto.coords); // Extraemos las coordenadas
-        var polyline = L.polyline(latlngs, {
-            color: 'red',       // Color de la línea
-            weight: 4,          // Grosor de la línea
-            opacity: 0.7,       // Opacidad de la línea
-            dashArray: '5, 5'   // Línea discontinua (si lo deseas)
+        // Trazar las líneas entre los puntos A, B y C con colores diferentes
+        var lineAB = L.polyline([puntos[0].coords, puntos[1].coords], {
+            color: 'green',
+            weight: 4,
+            opacity: 0.7
+        }).addTo(map);
+
+        var lineBC = L.polyline([puntos[1].coords, puntos[2].coords], {
+            color: 'red',
+            weight: 4,
+            opacity: 0.7
+        }).addTo(map);
+
+        var lineCA = L.polyline([puntos[2].coords, puntos[0].coords], {
+            color: 'blue',
+            weight: 4,
+            opacity: 0.7
         }).addTo(map);
     </script>
 
