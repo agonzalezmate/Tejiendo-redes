@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tejiendo Redes – Mapa Interactivo</title>
-
+  
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -46,13 +46,13 @@
 
   <h1>Tejiendo Redes</h1>
   <p>Haz clic en los puntos del mapa para conocer experiencias de la Economía Social y Solidaria.</p>
-
+  
   <div id="map"></div>
 
   <script>
-    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRFNO9Z_k50U_MJ8OvYJWPKkccYThbySuRQ0YBMrREvxAP4YjbQMxJA24O3XjVwhCInhWgW_Rorfgqh/pub?output=csv';
+    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhlVL-D8-RpvC-1d4XzFxGenqOWngY9_X5i2Ej7_onnnGwxP1UE2KWosezlx1ufhasIHsd--4cDX69/pub?output=csv';
 
-    const map = L.map('map').setView([41.5912, 1.5208], 8);  // Coordenadas iniciales
+    const map = L.map('map').setView([41.5912, 1.5208], 8);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
       attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
@@ -62,13 +62,14 @@
       key: publicSpreadsheetURL,
       simpleSheet: true,
       callback: function(data) {
+        console.log("Datos cargados:", data); // Para comprobar en consola
+
         const puntos = {};
 
         // Crear marcadores
         data.forEach(p => {
-          console.log("Datos cargados:", data);
           const id = p.id.trim();
-          const coords = [parseFloat(p.lat), parseFloat(p.lon)];
+          const coords = [parseFloat(convertCommaToDot(p.lat)), parseFloat(convertCommaToDot(p.lon))]; // Convertir comas en puntos
 
           puntos[id] = { ...p, coords };
 
@@ -102,6 +103,14 @@
         });
       }
     });
+
+    // Función para convertir comas en puntos
+    function convertCommaToDot(value) {
+      if (value) {
+        return value.replace(',', '.');
+      }
+      return value;
+    }
   </script>
 
 </body>
