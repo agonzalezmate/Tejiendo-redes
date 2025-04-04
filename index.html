@@ -5,31 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tejiendo Redes – Mapa Interactivo</title>
   
-  <!-- Leaflet CSS -->
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-  <!-- Tabletop.js para Google Sheets -->
-  <script src="https://unpkg.com/tabletop@1.6.4/tabletop.js"></script>
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
 
+  <!-- Tabletop.js -->
+  <script src="https://unpkg.com/tabletop@1.5.1/src/tabletop.js"></script>
+
   <style>
     body {
       font-family: 'Montserrat', sans-serif;
-      margin: 0;
       background-color: #F4F1ED;
       color: #2E2E2E;
+      margin: 0;
       padding: 1rem;
     }
-
     h1 {
       font-family: 'Quicksand', sans-serif;
-      font-size: 2rem;
       color: #D96C4F;
     }
-
     #map {
       height: 600px;
       width: 100%;
@@ -37,27 +34,12 @@
       box-shadow: 0 0 12px rgba(0,0,0,0.1);
       margin-top: 1rem;
     }
-
-    .leaflet-popup-content {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 1rem;
-      color: #2E2E2E;
-    }
-
     .leaflet-popup-content b {
       font-family: 'Quicksand', sans-serif;
-      font-size: 1.1rem;
       color: #7A9E7E;
     }
-
-    a {
-      color: #D96C4F;
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
+    a { color: #D96C4F; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -68,55 +50,55 @@
   <div id="map"></div>
 
   <script>
-    const colores = {
-      verde: "#7A9E7E",
-      terracota: "#D96C4F",
-      ocre: "#E6B655"
-    };
+    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT9plBfSStfQR_e_mDpycygsXPsQal-AGfGl6Mr3j-_k_jeos-ic-EgdpeKHYx7_pfADPKg2WowdEF3/pubhtml';
 
     const map = L.map('map').setView([41.5912, 1.5208], 8);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://carto.com/attributions">CartoDB</a> | ' +
-                   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
     }).addTo(map);
-
-    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhlVL-D8-RpvC-1d4XzFxGenqOWngY9_X5i2Ej7_onnnGwxP1UE2KWosezlx1ufhasIHsd--4cDX69/pubhtml';
 
     Tabletop.init({
       key: publicSpreadsheetURL,
       simpleSheet: true,
       callback: function(data) {
-        const puntos = [];
-
+        const puntos = {};
+        
+        // 1. Crear marcadores
         data.forEach(p => {
-          const lat = parseFloat(p.lat);
-          const lon = parseFloat(p.lon);
-          const coords = [lat, lon];
-          const color = p.color || colores.ocre;
+          const id = p.id.trim();
+          const coords = [parseFloat(p.lat), parseFloat(p.lon)];
 
-          puntos.push({ coords, titulo: p.titulo, link: p.link, color });
+          puntos[id] = { ...p, coords }; // guardamos para referencias cruzadas
 
           const icon = L.divIcon({
             className: 'custom-marker',
-            html: `<div style="width: 18px; height: 18px; background-color: ${color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
+            html: `<div style="width: 18px; height: 18px; background-color: ${p.color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
             iconSize: [18, 18],
             iconAnchor: [9, 9]
           });
 
-          L.marker(coords, { icon })
+          L.marker(coords, { icon: icon })
             .addTo(map)
             .bindPopup(`<b>${p.titulo}</b><br><a href="${p.link}" target="_blank">Ver más</a>`);
         });
 
-        // Dibujar líneas entre los puntos (opcional)
-        for (let i = 0; i < puntos.length - 1; i++) {
-          L.polyline([puntos[i].coords, puntos[i + 1].coords], {
-            color: puntos[i].color,
-            weight: 2,
-            opacity: 0.3
-          }).addTo(map);
-        }
+        // 2. Dibujar líneas entre nodos conectados
+        Object.values(puntos).forEach(p => {
+          if (p.conectaCon) {
+            const conexiones = p.conectaCon.split(',').map(id => id.trim());
+            conexiones.forEach(destId => {
+              const destino = puntos[destId];
+              if (destino) {
+                L.polyline([p.coords, destino.coords], {
+                  color: p.color || '#999999',
+                  weight: 2,
+                  opacity: 0.3
+                }).addTo(map);
+              }
+            });
+          }
+        });
       }
     });
   </script>
