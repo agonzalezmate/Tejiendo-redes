@@ -9,23 +9,19 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <!-- PapaParse (para CSV) -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <!-- Tabletop.js -->
+  <script src="https://unpkg.com/tabletop@1.5.1/src/tabletop.js"></script>
 
   <style>
     body {
-      font-family: 'Montserrat', sans-serif;
-      background-color: #F4F1ED;
-      color: #2E2E2E;
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f1ed;
+      color: #2e2e2e;
       margin: 0;
       padding: 1rem;
     }
     h1 {
-      font-family: 'Quicksand', sans-serif;
-      color: #D96C4F;
+      color: #d96c4f;
     }
     #map {
       height: 600px;
@@ -35,10 +31,9 @@
       margin-top: 1rem;
     }
     .leaflet-popup-content b {
-      font-family: 'Quicksand', sans-serif;
-      color: #7A9E7E;
+      color: #7a9e7e;
     }
-    a { color: #D96C4F; text-decoration: none; }
+    a { color: #d96c4f; text-decoration: none; }
     a:hover { text-decoration: underline; }
   </style>
 </head>
@@ -46,72 +41,68 @@
 
   <h1>Tejiendo Redes</h1>
   <p>Haz clic en los puntos del mapa para conocer experiencias de la Economía Social y Solidaria.</p>
-  
   <div id="map"></div>
 
   <script>
-    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhlVL-D8-RpvC-1d4XzFxGenqOWngY9_X5i2Ej7_onnnGwxP1UE2KWosezlx1ufhasIHsd--4cDX69/pub?output=csv';
+    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS0N_r7yGcZxBsy1oSyxy6FRhabT2BT_i5LWsNT1N3N8OIC__IrAz8Okmby69SBjHK_ulVPKkEQN7Ky/pub?output=csv';
 
-    const map = L.map('map').setView([41.5912, 1.5208], 8);
+    const map = L.map('map').setView([41.5912, 1.5208], 7);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
       attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    Papa.parse(csvUrl, {
-      download: true,
-      header: true,
-      complete: function(results) {
-        const data = results.data;
+    fetch(publicSpreadsheetURL)
+      .then(response => response.text())
+      .then(csv => {
+        const rows = csv.trim().split('\n').map(row => row.split(','));
+        const headers = rows[0];
+        const data = rows.slice(1).map(row => {
+          const obj = {};
+          headers.forEach((h, i) => obj[h.trim()] = row[i]?.trim());
+          return obj;
+        });
+
         const puntos = {};
 
         data.forEach(p => {
-          if (!p.id || !p.lat || !p.lon) return;
-
+          const id = p.id;
           const lat = parseFloat(p.lat);
           const lon = parseFloat(p.lon);
-
-          // Verificamos que las coordenadas sean válidas
-          if (isNaN(lat) || isNaN(lon)) {
-            console.error(`Coordenadas inválidas: lat: ${p.lat}, lon: ${p.lon}`);
-            return;
-          }
-
-          console.log(`Punto: ${p.id} - lat: ${lat}, lon: ${lon}`);
+          if (isNaN(lat) || isNaN(lon)) return;
 
           const coords = [lat, lon];
-          puntos[p.id] = { ...p, coords };
+          puntos[id] = { ...p, coords };
 
           const icon = L.divIcon({
             className: 'custom-marker',
-            html: `<div style="width: 18px; height: 18px; background-color: ${p.color || '#D96C4F'}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
+            html: `<div style="width: 18px; height: 18px; background-color: ${p.color || '#d96c4f'}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
             iconSize: [18, 18],
             iconAnchor: [9, 9]
           });
 
-          L.marker(coords, { icon: icon })
+          L.marker(coords, { icon })
             .addTo(map)
             .bindPopup(`<b>${p.titulo}</b><br><a href="${p.link}" target="_blank">Ver más</a>`);
         });
 
-        // Dibujar líneas entre nodos conectados
+        // Dibujar líneas
         Object.values(puntos).forEach(p => {
           if (p.conectaCon) {
-            const conexiones = p.conectaCon.split(',').map(x => x.trim());
+            const conexiones = p.conectaCon.split(',').map(id => id.trim());
             conexiones.forEach(destId => {
               const destino = puntos[destId];
               if (destino) {
                 L.polyline([p.coords, destino.coords], {
-                  color: p.color || '#999999',
+                  color: p.color || '#999',
                   weight: 2,
-                  opacity: 0.3
+                  opacity: 0.4
                 }).addTo(map);
               }
             });
           }
         });
-      }
-    });
+      });
   </script>
 
 </body>
