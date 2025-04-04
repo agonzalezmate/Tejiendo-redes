@@ -66,6 +66,7 @@
         
         // 1. Crear marcadores
         data.forEach(p => {
+          console.log("Datos cargados:", data);
           const id = p.id.trim();
           const coords = [parseFloat(p.lat), parseFloat(p.lon)];
 
