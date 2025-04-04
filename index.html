@@ -69,7 +69,12 @@
         // Crear marcadores
         data.forEach(p => {
           const id = p.id.trim();
-          const coords = [parseFloat(convertCommaToDot(p.lat)), parseFloat(convertCommaToDot(p.lon))]; // Convertir comas en puntos
+          const lat = convertCommaToDot(p.lat); // Convertir comas en puntos
+          const lon = convertCommaToDot(p.lon); // Convertir comas en puntos
+          
+          console.log(`ID: ${id}, Latitud: ${lat}, Longitud: ${lon}`); // Agregado para depuración
+
+          const coords = [parseFloat(lat), parseFloat(lon)];
 
           puntos[id] = { ...p, coords };
 
