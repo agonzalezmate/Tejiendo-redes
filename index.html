@@ -12,9 +12,6 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
 
-  <!-- Tabletop.js -->
-  <script src="https://unpkg.com/tabletop@1.5.1/src/tabletop.js"></script>
-
   <style>
     body {
       font-family: 'Montserrat', sans-serif;
@@ -50,7 +47,9 @@
   <div id="map"></div>
 
   <script>
-    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhlVL-D8-RpvC-1d4XzFxGenqOWngY9_X5i2Ej7_onnnGwxP1UE2KWosezlx1ufhasIHsd--4cDX69/pub?output=csv';
+    const SHEET_ID = '2PACX-1vRFNO9Z_k50U_MJ8OvYJWPKkccYThbySuRQ0YBMrREvxAP4YjbQMxJA24O3XjVwhCInhWgW_Rorfgqh';  // Pon aquí el ID de tu hoja de cálculo de Google Sheets
+    const API_KEY = 'AIzaSyBtSLItm4o5-Y_wP8_9Xd369aBQsbSdGJ4';  // Pon aquí tu clave de API de Google Sheets
+    const RANGE = 'Hoja1!A:G';  // Rango que quieres cargar, por ejemplo: Hoja1!A:F
 
     const map = L.map('map').setView([41.5912, 1.5208], 8);
 
@@ -58,64 +57,34 @@
       attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    Tabletop.init({
-      key: publicSpreadsheetURL,
-      simpleSheet: true,
-      callback: function(data) {
-        console.log("Datos cargados:", data); // Para comprobar en consola
+    // Cargar datos de Google Sheets usando la API
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`)
+      .then(response => response.json())
+      .then(data => {
+        const rows = data.values;
+        if (!rows || rows.length === 0) {
+          console.error('No se encontraron datos.');
+          return;
+        }
 
-        const puntos = {};
+        rows.forEach((row, index) => {
+          if (index === 0) return; // Ignorar la primera fila (cabeceras)
 
-        // Crear marcadores
-        data.forEach(p => {
-          const id = p.id.trim();
-          const lat = convertCommaToDot(p.lat); // Convertir comas en puntos
-          const lon = convertCommaToDot(p.lon); // Convertir comas en puntos
-          
-          console.log(`ID: ${id}, Latitud: ${lat}, Longitud: ${lon}`); // Agregado para depuración
+          const [id, direccion, lat, lon, titulo, link] = row;
 
-          const coords = [parseFloat(lat), parseFloat(lon)];
+          // Verificar si la latitud y longitud son válidas
+          const latLng = [parseFloat(lat.replace(',', '.')), parseFloat(lon.replace(',', '.'))];
 
-          puntos[id] = { ...p, coords };
-
-          const icon = L.divIcon({
-            className: 'custom-marker',
-            html: `<div style="width: 18px; height: 18px; background-color: ${p.color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
-            iconSize: [18, 18],
-            iconAnchor: [9, 9]
-          });
-
-          L.marker(coords, { icon: icon })
-            .addTo(map)
-            .bindPopup(`<b>${p.titulo}</b><br><a href="${p.link}" target="_blank">Ver más</a>`);
-        });
-
-        // Dibujar líneas entre nodos conectados
-        Object.values(puntos).forEach(p => {
-          if (p.conectaCon) {
-            const conexiones = p.conectaCon.split(',').map(id => id.trim());
-            conexiones.forEach(destId => {
-              const destino = puntos[destId];
-              if (destino) {
-                L.polyline([p.coords, destino.coords], {
-                  color: p.color || '#999999',
-                  weight: 2,
-                  opacity: 0.3
-                }).addTo(map);
-              }
-            });
+          if (!isNaN(latLng[0]) && !isNaN(latLng[1])) {
+            L.marker(latLng)
+              .addTo(map)
+              .bindPopup(`<b>${titulo}</b><br><a href="${link}" target="_blank">Ver más</a>`);
+          } else {
+            console.error('Coordenadas inválidas:', lat, lon);
           }
         });
-      }
-    });
-
-    // Función para convertir comas en puntos
-    function convertCommaToDot(value) {
-      if (value) {
-        return value.replace(',', '.');
-      }
-      return value;
-    }
+      })
+      .catch(error => console.error('Error al cargar los datos:', error));
   </script>
 
 </body>
