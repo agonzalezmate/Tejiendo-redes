@@ -66,8 +66,8 @@
 
         data.forEach(p => {
           const id = p.id?.trim();
-          const lat = parseFloat(p.lat);
-          const lon = parseFloat(p.lon);
+const lat = parseFloat(p.lat.replace(',', '.'));
+const lon = parseFloat(p.lon.replace(',', '.'));
 
           if (!id || isNaN(lat) || isNaN(lon)) {
             console.warn("Punto inválido", p);
