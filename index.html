@@ -73,11 +73,30 @@
     };
 
     // Datos de los puntos
-    const puntos = [
-      { coords: [41.3884, 2.1905], titulo: "Cooperativa A (Barcelona)", link: "https://ejemplo.com/a", color: colores.terracota },
-      { coords: [41.9028, 1.1380], titulo: "Fundación B (Tarragona)", link: "https://ejemplo.com/b", color: colores.verde },
-      { coords: [41.9794, 2.8214], titulo: "Asociación C (Girona)", link: "https://ejemplo.com/c", color: colores.ocre }
-    ];
+    <script>
+  const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT9plBfSStfQR_e_mDpycygsXPsQal-AGfGl6Mr3j-_k_jeos-ic-EgdpeKHYx7_pfADPKg2WowdEF3/pubhtml';
+
+  Tabletop.init({
+    key: publicSpreadsheetURL,
+    simpleSheet: true,
+    callback: function(data) {
+      data.forEach(p => {
+        const coords = [parseFloat(p.lat), parseFloat(p.lon)];
+
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="width: 18px; height: 18px; background-color: ${p.color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
+          iconSize: [18, 18],
+          iconAnchor: [9, 9]
+        });
+
+        L.marker(coords, { icon: icon })
+          .addTo(map)
+          .bindPopup(`<b>${p.titulo}</b><br><a href="${p.link}" target="_blank">Ver más</a>`);
+      });
+    }
+  });
+</script>
 
     // Iniciar el mapa
     const map = L.map('map').setView([41.5912, 1.5208], 8);
