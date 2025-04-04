@@ -68,10 +68,19 @@
         data.forEach(p => {
           if (!p.id || !p.lat || !p.lon) return;
 
-          const id = p.id.trim();
-          const coords = [parseFloat(p.lat), parseFloat(p.lon)];
+          const lat = parseFloat(p.lat);
+          const lon = parseFloat(p.lon);
 
-          puntos[id] = { ...p, coords };
+          // Verificamos que las coordenadas sean válidas
+          if (isNaN(lat) || isNaN(lon)) {
+            console.error(`Coordenadas inválidas: lat: ${p.lat}, lon: ${p.lon}`);
+            return;
+          }
+
+          console.log(`Punto: ${p.id} - lat: ${lat}, lon: ${lon}`);
+
+          const coords = [lat, lon];
+          puntos[p.id] = { ...p, coords };
 
           const icon = L.divIcon({
             className: 'custom-marker',
@@ -85,7 +94,7 @@
             .bindPopup(`<b>${p.titulo}</b><br><a href="${p.link}" target="_blank">Ver más</a>`);
         });
 
-        // Dibujar líneas
+        // Dibujar líneas entre nodos conectados
         Object.values(puntos).forEach(p => {
           if (p.conectaCon) {
             const conexiones = p.conectaCon.split(',').map(x => x.trim());
