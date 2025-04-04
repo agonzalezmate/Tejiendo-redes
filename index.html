@@ -9,19 +9,23 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+
   <!-- Tabletop.js -->
   <script src="https://unpkg.com/tabletop@1.5.1/src/tabletop.js"></script>
 
   <style>
     body {
-      font-family: 'Arial', sans-serif;
-      background-color: #f4f1ed;
-      color: #2e2e2e;
+      font-family: 'Montserrat', sans-serif;
+      background-color: #F4F1ED;
+      color: #2E2E2E;
       margin: 0;
       padding: 1rem;
     }
     h1 {
-      color: #d96c4f;
+      font-family: 'Quicksand', sans-serif;
+      color: #D96C4F;
     }
     #map {
       height: 600px;
@@ -31,9 +35,10 @@
       margin-top: 1rem;
     }
     .leaflet-popup-content b {
-      color: #7a9e7e;
+      font-family: 'Quicksand', sans-serif;
+      color: #7A9E7E;
     }
-    a { color: #d96c4f; text-decoration: none; }
+    a { color: #D96C4F; text-decoration: none; }
     a:hover { text-decoration: underline; }
   </style>
 </head>
@@ -41,52 +46,50 @@
 
   <h1>Tejiendo Redes</h1>
   <p>Haz clic en los puntos del mapa para conocer experiencias de la Economía Social y Solidaria.</p>
+  
   <div id="map"></div>
 
   <script>
-    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS0N_r7yGcZxBsy1oSyxy6FRhabT2BT_i5LWsNT1N3N8OIC__IrAz8Okmby69SBjHK_ulVPKkEQN7Ky/pub?output=csv';
+    const publicSpreadsheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhlVL-D8-RpvC-1d4XzFxGenqOWngY9_X5i2Ej7_onnnGwxP1UE2KWosezlx1ufhasIHsd--4cDX69/pub?output=csv';
 
-    const map = L.map('map').setView([41.5912, 1.5208], 7);
+    const map = L.map('map').setView([40.4168, -3.7038], 6);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
       attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    fetch(publicSpreadsheetURL)
-      .then(response => response.text())
-      .then(csv => {
-        const rows = csv.trim().split('\n').map(row => row.split(','));
-        const headers = rows[0];
-        const data = rows.slice(1).map(row => {
-          const obj = {};
-          headers.forEach((h, i) => obj[h.trim()] = row[i]?.trim());
-          return obj;
-        });
-
+    Tabletop.init({
+      key: publicSpreadsheetURL,
+      simpleSheet: true,
+      callback: function(data) {
         const puntos = {};
 
         data.forEach(p => {
-          const id = p.id;
+          const id = p.id?.trim();
           const lat = parseFloat(p.lat);
           const lon = parseFloat(p.lon);
-          if (isNaN(lat) || isNaN(lon)) return;
+
+          if (!id || isNaN(lat) || isNaN(lon)) {
+            console.warn("Punto inválido", p);
+            return;
+          }
 
           const coords = [lat, lon];
           puntos[id] = { ...p, coords };
 
           const icon = L.divIcon({
             className: 'custom-marker',
-            html: `<div style="width: 18px; height: 18px; background-color: ${p.color || '#d96c4f'}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
+            html: `<div style="width: 18px; height: 18px; background-color: ${p.color || '#D96C4F'}; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3);"></div>`,
             iconSize: [18, 18],
             iconAnchor: [9, 9]
           });
 
-          L.marker(coords, { icon })
+          L.marker(coords, { icon: icon })
             .addTo(map)
             .bindPopup(`<b>${p.titulo}</b><br><a href="${p.link}" target="_blank">Ver más</a>`);
         });
 
-        // Dibujar líneas
+        // Dibujar conexiones
         Object.values(puntos).forEach(p => {
           if (p.conectaCon) {
             const conexiones = p.conectaCon.split(',').map(id => id.trim());
@@ -94,7 +97,7 @@
               const destino = puntos[destId];
               if (destino) {
                 L.polyline([p.coords, destino.coords], {
-                  color: p.color || '#999',
+                  color: p.color || '#999999',
                   weight: 2,
                   opacity: 0.4
                 }).addTo(map);
@@ -102,7 +105,8 @@
             });
           }
         });
-      });
+      }
+    });
   </script>
 
 </body>
