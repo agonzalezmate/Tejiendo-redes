@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tejiendo Redes – Mapa Interactivo</title>
-  
+
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -47,97 +47,104 @@
   <div id="map"></div>
 
   <script>
-    // Paleta de Tejiendo Redes
-const coloresPaleta = ['#7A9E7E', '#D96C4F', '#E6B655'];
+    const coloresPaleta = ['#7A9E7E', '#D96C4F', '#E6B655'];
 
-const map = L.map('map').setView([41.5912, 1.5208], 8);
+    const map = L.map('map').setView([41.5912, 1.5208], 8);
 
-  const SHEET_ID = '1zFgdSzHV4YoQp8kF2-XGJtA1D-RO7tHJUBp43gesChs';  // ID de la hoja de cálculo de Google Sheets
-    const API_KEY = 'AIzaSyBtSLItm4o5-Y_wP8_9Xd369aBQsbSdGJ4';  // Clave de API de Google Sheets
-    const RANGE = 'TR!A:G';  // Rango de datos (asegúrate de que tu hoja esté correcta)
+    // Crear panes personalizados
+    map.createPane('lineas');
+    map.getPane('lineas').style.zIndex = 400;
 
+    map.createPane('nodos');
+    map.getPane('nodos').style.zIndex = 500;
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
-  attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
-}).addTo(map);
+    const SHEET_ID = '1zFgdSzHV4YoQp8kF2-XGJtA1D-RO7tHJUBp43gesChs';
+    const API_KEY = 'AIzaSyBtSLItm4o5-Y_wP8_9Xd369aBQsbSdGJ4';
+    const RANGE = 'TR!A:G';
 
-const puntosPorId = {};
-const coloresAsignados = {};  // Guardaremos el color de cada nodo
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+      attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-function colorAleatorio(evitar = []) {
-  const posibles = coloresPaleta.filter(c => !evitar.includes(c));
-  return posibles[Math.floor(Math.random() * posibles.length)] || coloresPaleta[0];
-}
+    const puntosPorId = {};
+    const coloresAsignados = {};
 
-fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`)
-  .then(response => response.json())
-  .then(data => {
-    const rows = data.values;
-    if (!rows || rows.length === 0) {
-      console.error('No se encontraron datos.');
-      return;
+    function colorAleatorio(evitar = []) {
+      const posibles = coloresPaleta.filter(c => !evitar.includes(c));
+      return posibles[Math.floor(Math.random() * posibles.length)] || coloresPaleta[0];
     }
 
-    rows.forEach((row, index) => {
-      if (index === 0) return;
+    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`)
+      .then(response => response.json())
+      .then(data => {
+        const rows = data.values;
+        if (!rows || rows.length === 0) {
+          console.error('No se encontraron datos.');
+          return;
+        }
 
-      const [id, direccion, lat, lon, titulo, link, conectaCon] = row;
-      const latLng = [parseFloat(lat.replace(',', '.')), parseFloat(lon.replace(',', '.'))];
+        // Guardar los nodos primero
+        rows.forEach((row, index) => {
+          if (index === 0) return;
 
-      if (!isNaN(latLng[0]) && !isNaN(latLng[1])) {
-        // Asignamos un color aleatorio que aún no haya sido usado por nodos contiguos
-        const color = colorAleatorio();  // Simple al inicio
-        coloresAsignados[id] = color;
+          const [id, direccion, lat, lon, titulo, link, conectaCon] = row;
+          const latLng = [parseFloat(lat.replace(',', '.')), parseFloat(lon.replace(',', '.'))];
 
-        puntosPorId[id] = { id, latLng, conectaCon };
+          if (!isNaN(latLng[0]) && !isNaN(latLng[1])) {
+            const color = colorAleatorio();
+            coloresAsignados[id] = color;
 
-L.circleMarker(latLng, {
-  radius: 9,
-  fillColor: color,
-  color: 'transparent',
-  weight: 0,
-  fillOpacity: 0.9
-})
-        .addTo(map)
-        .bindPopup(`
-          <div style="font-family: 'Montserrat', sans-serif;">
-            <div style="font-family: 'Quicksand', sans-serif; font-size: 1.1em; color: ${color}; font-weight: bold;">
-              ${titulo}
-            </div>
-            <div style="margin-top: 4px;">
-              <a href="${link}" target="_blank" style="color: #D96C4F; text-decoration: none;">Ver más</a>
-            </div>
-          </div>
-        `);
-      } else {
-        console.warn(`Coordenadas inválidas para ${id}: ${lat}, ${lon}`);
-      }
-    });
-
-    // Dibujar conexiones
-    Object.values(puntosPorId).forEach(punto => {
-      if (punto.conectaCon) {
-        const conexiones = punto.conectaCon.split(',').map(id => id.trim());
-        conexiones.forEach(destinoId => {
-          const destino = puntosPorId[destinoId];
-          if (destino) {
-            const colorNodoOrigen = coloresAsignados[punto.id];
-            const colorNodoDestino = coloresAsignados[destino.id];
-            const colorLinea = colorAleatorio([colorNodoOrigen, colorNodoDestino]);
-
-            L.polyline([punto.latLng, destino.latLng], {
-              color: colorLinea,
-              weight: 3,
-              opacity: 0.6
-            }).addTo(map);
+            puntosPorId[id] = {
+              id, latLng, titulo, link, conectaCon, color
+            };
           }
         });
-      }
-    });
-  })
-  .catch(error => console.error('Error al cargar los datos:', error));
 
+        // Dibujar las líneas primero
+        Object.values(puntosPorId).forEach(punto => {
+          if (punto.conectaCon) {
+            const conexiones = punto.conectaCon.split(',').map(id => id.trim());
+            conexiones.forEach(destinoId => {
+              const destino = puntosPorId[destinoId];
+              if (destino) {
+                const colorLinea = colorAleatorio([punto.color, destino.color]);
+                L.polyline([punto.latLng, destino.latLng], {
+                  color: colorLinea,
+                  weight: 3,
+                  opacity: 0.6,
+                  pane: 'lineas'
+                }).addTo(map);
+              }
+            });
+          }
+        });
+
+        // Luego dibujar los puntos (por encima)
+        Object.values(puntosPorId).forEach(punto => {
+          L.circleMarker(punto.latLng, {
+            pane: 'nodos',
+            radius: 9,
+            fillColor: punto.color,
+            color: 'transparent', // sin borde
+            weight: 0,
+            fillOpacity: 0.9
+          })
+          .addTo(map)
+          .bindPopup(`
+            <div style="font-family: 'Montserrat', sans-serif;">
+              <div style="font-family: 'Quicksand', sans-serif; font-size: 1.1em; color: ${punto.color}; font-weight: bold;">
+                ${punto.titulo}
+              </div>
+              <div style="margin-top: 4px;">
+                <a href="${punto.link}" target="_blank" style="color: #D96C4F; text-decoration: none;">Ver más</a>
+              </div>
+            </div>
+          `);
+        });
+      })
+      .catch(error => console.error('Error al cargar los datos:', error));
   </script>
 
 </body>
 </html>
+
