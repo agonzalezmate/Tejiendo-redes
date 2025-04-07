@@ -52,6 +52,11 @@ const coloresPaleta = ['#7A9E7E', '#D96C4F', '#E6B655'];
 
 const map = L.map('map').setView([41.5912, 1.5208], 8);
 
+  const SHEET_ID = '1zFgdSzHV4YoQp8kF2-XGJtA1D-RO7tHJUBp43gesChs';  // ID de la hoja de cálculo de Google Sheets
+    const API_KEY = 'AIzaSyBtSLItm4o5-Y_wP8_9Xd369aBQsbSdGJ4';  // Clave de API de Google Sheets
+    const RANGE = 'TR!A:G';  // Rango de datos (asegúrate de que tu hoja esté correcta)
+
+
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
   attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
 }).addTo(map);
