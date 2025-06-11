@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tejiendo Redes – Mapa Interactivo</title>
-
+  
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -43,32 +43,76 @@
 
   <h1>Tejiendo Redes</h1>
   <p>Haz clic en los puntos del mapa para conocer experiencias de la Economía Social y Solidaria.</p>
-
+  
   <div id="map"></div>
 
   <script>
+    // Paleta de colores y variable global
+    const coloresPaleta = ['#7A9E7E', '#D96C4F', '#E6B655'];
+    const gris = '#888888';
+
+    const map = L.map('map').setView([41.5912, 1.5208], 8);
+
     const SHEET_ID = '1zFgdSzHV4YoQp8kF2-XGJtA1D-RO7tHJUBp43gesChs';
     const API_KEY = 'AIzaSyBtSLItm4o5-Y_wP8_9Xd369aBQsbSdGJ4';
     const RANGE = 'TR!A:G';
-
-    const map = L.map('map').setView([41.5912, 1.5208], 8);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
       attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Colores oficiales del proyecto
-    const coloresPaleta = ['#7A9E7E', '#D96C4F', '#E6B655'];
-    const COLOR_GRIS = '#AAAAAA';
-
+    // Guardar nodos y líneas
     const puntosPorId = {};
     const coloresAsignados = {};
+    const markers = {};
+    const lines = [];
 
+    // Función para escoger color aleatorio evitando algunos
     function colorAleatorio(evitar = []) {
       const posibles = coloresPaleta.filter(c => !evitar.includes(c));
       return posibles[Math.floor(Math.random() * posibles.length)] || coloresPaleta[0];
     }
 
+    // Función para destacar nodos y líneas conectados
+    function destacarNodo(idSeleccionado) {
+      // Nodos conectados: el nodo seleccionado + sus conexiones
+      const conexiones = puntosPorId[idSeleccionado].conectaCon
+        ? puntosPorId[idSeleccionado].conectaCon.split(',').map(c => c.trim())
+        : [];
+
+      Object.entries(markers).forEach(([id, marker]) => {
+        if (id === idSeleccionado || conexiones.includes(id)) {
+          marker.setStyle({ fillOpacity: 0.9, opacity: 1 });
+        } else {
+          marker.setStyle({ fillOpacity: 0.2, opacity: 0.3 });
+        }
+      });
+
+      lines.forEach(({ polyline, origenId, destinoId }) => {
+        if (
+          origenId === idSeleccionado ||
+          destinoId === idSeleccionado ||
+          conexiones.includes(origenId) && destinoId === idSeleccionado ||
+          conexiones.includes(destinoId) && origenId === idSeleccionado
+        ) {
+          polyline.setStyle({ opacity: 0.8, weight: 4 });
+        } else {
+          polyline.setStyle({ opacity: 0.1, weight: 2 });
+        }
+      });
+    }
+
+    // Función para resetear estilos al estado normal
+    function resetEstilos() {
+      Object.values(markers).forEach(marker => {
+        marker.setStyle({ fillOpacity: 0.8, opacity: 1 });
+      });
+      lines.forEach(({ polyline }) => {
+        polyline.setStyle({ opacity: 0.6, weight: 3 });
+      });
+    }
+
+    // Cargar datos y crear mapa
     fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`)
       .then(response => response.json())
       .then(data => {
@@ -78,77 +122,78 @@
           return;
         }
 
-        // Primero procesamos los puntos
         rows.forEach((row, index) => {
-          if (index === 0) return;
+          if (index === 0) return; // Cabecera
 
           const [id, direccion, lat, lon, titulo, link, conectaCon] = row;
           const latLng = [parseFloat(lat.replace(',', '.')), parseFloat(lon.replace(',', '.'))];
 
           if (!isNaN(latLng[0]) && !isNaN(latLng[1])) {
-            const esInactivo = !link || link.trim() === '';
-            const color = esInactivo ? COLOR_GRIS : colorAleatorio();
+            // Decide color: si el título incluye "[gris]" el punto es gris y sus líneas también
+            const esGris = titulo && titulo.toLowerCase().includes('[gris]');
+            const color = esGris ? gris : colorAleatorio();
+
             coloresAsignados[id] = color;
+            puntosPorId[id] = { id, latLng, conectaCon };
 
-            puntosPorId[id] = { id, latLng, conectaCon, esInactivo };
-
-            // Guardar el marker para dibujar luego encima de las líneas
             const marker = L.circleMarker(latLng, {
               radius: 9,
               fillColor: color,
-              color: 'transparent',
+              color: null,   // Sin borde
               weight: 0,
               opacity: 1,
-              fillOpacity: 0.9
-            }).bindPopup(`
+              fillOpacity: 0.8
+            })
+            .addTo(map)
+            .bindPopup(`
               <div style="font-family: 'Montserrat', sans-serif;">
                 <div style="font-family: 'Quicksand', sans-serif; font-size: 1.1em; color: ${color}; font-weight: bold;">
-                  ${titulo}
+                  ${titulo.replace('[gris]', '')}
                 </div>
-                ${!esInactivo ? `
-                  <div style="margin-top: 4px;">
-                    <a href="${link}" target="_blank" style="color: #D96C4F; text-decoration: none;">Ver más</a>
-                  </div>
-                ` : `<div style="margin-top: 4px; color: #888888;">Próximamente</div>`}
+                <div style="margin-top: 4px;">
+                  ${esGris ? '' : `<a href="${link}" target="_blank" style="color: #D96C4F; text-decoration: none;">Ver más</a>`}
+                </div>
               </div>
             `);
 
-            puntosPorId[id].marker = marker;
-          } else {
-            console.warn(`Coordenadas inválidas para ${id}: ${lat}, ${lon}`);
-          }
-        });
+            markers[id] = marker;
 
-        // Luego las líneas
-        Object.values(puntosPorId).forEach(punto => {
-          if (punto.conectaCon) {
-            const conexiones = punto.conectaCon.split(',').map(id => id.trim());
-            conexiones.forEach(destinoId => {
-              const destino = puntosPorId[destinoId];
-              if (destino) {
-                const lineaGris = punto.esInactivo || destino.esInactivo;
-                const colorLinea = lineaGris
-                  ? COLOR_GRIS
-                  : colorAleatorio([coloresAsignados[punto.id], coloresAsignados[destino.id]]);
+            marker.on('click', () => {
+              destacarNodo(id);
+            });
 
-                L.polyline([punto.latLng, destino.latLng], {
-                  color: colorLinea,
-                  weight: 3,
-                  opacity: 0.6
-                }).addTo(map);
-              }
+            marker.on('popupclose', () => {
+              resetEstilos();
             });
           }
         });
 
-        // Finalmente, añadir los puntos encima de las líneas
-        Object.values(puntosPorId).forEach(p => {
-          if (p.marker) {
-            p.marker.addTo(map);
+        // Crear líneas
+        Object.values(puntosPorId).forEach(punto => {
+          if (punto.conectaCon) {
+            const conexiones = punto.conectaCon.split(',').map(c => c.trim());
+            conexiones.forEach(destinoId => {
+              const destino = puntosPorId[destinoId];
+              if (destino) {
+                // Si origen o destino es gris, línea gris, si no, color aleatorio
+                const origenGris = coloresAsignados[punto.id] === gris;
+                const destinoGris = coloresAsignados[destinoId] === gris;
+                const colorLinea = (origenGris || destinoGris) ? gris : colorAleatorio([coloresAsignados[punto.id], coloresAsignados[destinoId]]);
+
+                const polyline = L.polyline([punto.latLng, destino.latLng], {
+                  color: colorLinea,
+                  weight: 3,
+                  opacity: 0.6
+                }).addTo(map);
+
+                lines.push({ polyline, origenId: punto.id, destinoId });
+              }
+            });
           }
         });
       })
       .catch(error => console.error('Error al cargar los datos:', error));
+
   </script>
 
 </body>
