@@ -47,9 +47,8 @@
   <div id="map"></div>
 
   <script>
-    // Paleta de colores y variable gris
     const coloresPaleta = ['#7A9E7E', '#D96C4F', '#E6B655'];
-    const gris = '#888888';
+    const gris = '#CCCCCC';  // Gris más claro
 
     const map = L.map('map').setView([41.5912, 1.5208], 8);
 
@@ -61,7 +60,6 @@
       attribution: '&copy; CartoDB | &copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Guardar nodos y líneas
     const puntosPorId = {};
     const coloresAsignados = {};
     const markers = {};
@@ -117,9 +115,9 @@
           return;
         }
 
-        // Primero creamos puntos en memoria para usarlos en líneas
+        // Guardar nodos con datos primero
         rows.forEach((row, index) => {
-          if (index === 0) return; // saltar cabecera
+          if (index === 0) return;
 
           const [id, direccion, lat, lon, titulo, link, conectaCon] = row;
           const latLng = [parseFloat(lat.replace(',', '.')), parseFloat(lon.replace(',', '.'))];
@@ -129,22 +127,21 @@
           }
         });
 
-        // Luego creamos todas las líneas primero (para que queden debajo)
+        // Dibujar líneas primero
         Object.values(puntosPorId).forEach(punto => {
           if (punto.conectaCon) {
             const conexiones = punto.conectaCon.split(',').map(c => c.trim());
             conexiones.forEach(destinoId => {
               const destino = puntosPorId[destinoId];
               if (destino) {
-                // Si origen o destino no tiene link, línea gris
                 const origenSinLink = !punto.link || punto.link.trim() === '';
                 const destinoSinLink = !destino.link || destino.link.trim() === '';
-                const colorLinea = (origenSinLink || destinoSinLink) ? gris : colorAleatorio([coloresAsignados[punto.id], coloresAsignados[destinoId]]);
+                const esGris = origenSinLink || destinoSinLink;
 
                 const polyline = L.polyline([punto.latLng, destino.latLng], {
-                  color: colorLinea,
+                  color: esGris ? gris : colorAleatorio(),
                   weight: 3,
-                  opacity: 0.6
+                  opacity: esGris ? 0.3 : 0.6
                 }).addTo(map);
 
                 lines.push({ polyline, origenId: punto.id, destinoId });
@@ -153,7 +150,7 @@
           }
         });
 
-        // Finalmente creamos los nodos (por encima de las líneas)
+        // Dibujar nodos después
         Object.values(puntosPorId).forEach(punto => {
           const esGris = !punto.link || punto.link.trim() === '';
           const color = esGris ? gris : colorAleatorio();
@@ -166,7 +163,7 @@
             color: null,
             weight: 0,
             opacity: 1,
-            fillOpacity: 0.8
+            fillOpacity: esGris ? 0.4 : 0.8
           })
           .addTo(map)
           .bindPopup(`
@@ -192,7 +189,6 @@
         });
       })
       .catch(error => console.error('Error al cargar los datos:', error));
-
   </script>
 
 </body>
